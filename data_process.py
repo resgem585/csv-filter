@@ -1,4 +1,5 @@
 import pandas as pd
+from tqdm import tqdm
 
 
 def load_and_process_data(data):
@@ -76,7 +77,6 @@ def load_and_process_data(data):
     b2f_r12_map = {1: "Sí", 2: "No"}
     data["b2f.r12"] = data["b2f.r12"].map(b2f_r12_map)
 
-    # Mapeo para las columnas leales, switcher, potencial, esporadico, no_interesados, abandonador
     leales_map = switcher_map = potencial_map = esporadico_map = no_interesados_map = (
         abandonador_map
     ) = {1: "Sí"}
@@ -87,7 +87,6 @@ def load_and_process_data(data):
     data["no_interesados"] = data["no_interesados"].map(no_interesados_map)
     data["abandonador"] = data["abandonador"].map(abandonador_map)
 
-    # Definición de las marcas y su mapeo
     marcas_map = {
         "Bonafont": 1,
         "Ciel": 2,
@@ -104,7 +103,6 @@ def load_and_process_data(data):
     # Crear una lista para almacenar las filas transformadas
     transformed_rows = []
 
-    # Atributos definidos anteriormente
     atributos = [
         "b8c Siempre tiene comerciales",
         "b8c Tiene la mejor publicidad",
@@ -137,21 +135,17 @@ def load_and_process_data(data):
         "b8c Se comporta responsablemente con el medio ambiente",
     ]
 
-    # Iterar sobre cada fila del DataFrame original
-    for index, row in data.iterrows():
-        # Iterar sobre cada atributo y aplicar la lógica de las marcas
+    # Progreso para procesar datos
+    for index, row in tqdm(data.iterrows(), total=len(data), desc="Procesando datos"):
         for i, atributo in enumerate(atributos):
-            # Crear una fila nueva para el DataFrame transformado
             new_row = {marca: "" for marca in marcas_map.keys()}
             new_row["Atributos"] = atributo
 
-            # Asignar el valor correspondiente a las marcas que aplican a este atributo
             for marca in marcas_map.keys():
                 column_name = f"img_{30 + i}_{marcas_map[marca]}"
                 if column_name in data.columns and pd.notna(row[column_name]):
-                    new_row[marca] = int(marcas_map[marca])  # Asignar valor numérico
+                    new_row[marca] = int(marcas_map[marca])
 
-            # Copiar las columnas mapeadas que no cambian por atributo
             new_row["folio"] = row["folio"]
             new_row["nse_nue"] = row["nse_nue"]
             new_row["ciudad"] = row["ciudad"]
@@ -170,8 +164,24 @@ def load_and_process_data(data):
             new_row["no_interesados"] = row["no_interesados"]
             new_row["abandonador"] = row["abandonador"]
 
-            # Agregar el valor de la columna b1a.r05 sin modificarlo
             new_row["b1a.r05"] = row["b1a.r05"]
+            new_row["b1a.r06"] = row["b1a.r06"]
+            new_row["b1a.r12"] = row["b1a.r12"]
+            new_row["b1a.r19"] = row["b1a.r19"]
+            new_row["b1a.r21"] = row["b1a.r21"]
+            new_row["b1a.r28"] = row["b1a.r28"]
+            new_row["b1b.r05"] = row["b1b.r05"]
+            new_row["b1b.r06"] = row["b1b.r06"]
+            new_row["b1b.r12"] = row["b1b.r12"]
+            new_row["b1b.r19"] = row["b1b.r19"]
+            new_row["b1b.r21"] = row["b1b.r21"]
+            new_row["b1b.r28"] = row["b1b.r28"]
+            new_row["b2a.r05"] = row["b2a.r05"]
+            new_row["b2a.r06"] = row["b2a.r06"]
+            new_row["b2a.r12"] = row["b2a.r12"]
+            new_row["b2a.r19"] = row["b2a.r19"]
+            new_row["b2a.r21"] = row["b2a.r21"]
+            new_row["b2a.r28"] = row["b2a.r28"]
 
             # Asignar ponderación (ajústalo según cómo se calcule en tus datos)
             new_row["ponderacion"] = row.get(
@@ -184,7 +194,59 @@ def load_and_process_data(data):
     # Convertir la lista de filas transformadas en un DataFrame
     transformed_df = pd.DataFrame(transformed_rows)
 
-    # Eliminar las columnas que están completamente vacías (sin datos)
-    transformed_df = transformed_df.dropna(axis=1, how="all")
+    # Reordenar las columnas según el orden especificado
+    columns_order = [
+        "folio",
+        "nse_nue",
+        "ciudad",
+        "ecat",
+        "edadx",
+        "sexo",
+        "medicion_Q",
+        "anio",
+        "panel",
+        "enlinea",
+        "b1a.r05",
+        "b1a.r06",
+        "b1a.r12",
+        "b1a.r19",
+        "b1a.r21",
+        "b1a.r28",
+        "b1b.r05",
+        "b1b.r06",
+        "b1b.r12",
+        "b1b.r19",
+        "b1b.r21",
+        "b1b.r28",
+        "b2a.r05",
+        "b2a.r06",
+        "b2a.r12",
+        "b2a.r19",
+        "b2a.r21",
+        "b2a.r28",
+        "Bonafont",
+        "Ciel",
+        "E.Pura",
+        "Pureza Vital",
+        "Santa María",
+        "Skarch",
+        "Atributos",
+        "b2f.r12",
+        "leales",
+        "switcher",
+        "potencial",
+        "esporadico",
+        "no_interesados",
+        "abandonador",
+        "ponderacion",
+    ]
+
+    # Asegurar que todas las columnas existan en el DataFrame final
+    for col in columns_order:
+        if col not in transformed_df.columns:
+            transformed_df[col] = ""
+
+    # Reordenar las columnas
+    transformed_df = transformed_df[columns_order]
 
     return transformed_df

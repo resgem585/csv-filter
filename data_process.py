@@ -87,6 +87,11 @@ def load_and_process_data(data):
     data["no_interesados"] = data["no_interesados"].map(no_interesados_map)
     data["abandonador"] = data["abandonador"].map(abandonador_map)
 
+    # Convertir valores vacíos en columnas b2a.r05 a b2a.r28 en 1
+    cols_to_fill = ["b2a.r05", "b2a.r06", "b2a.r12", "b2a.r19", "b2a.r21", "b2a.r28"]
+    data[cols_to_fill] = data[cols_to_fill].fillna(1)
+
+    # Mapeo de marcas
     marcas_map = {
         "Bonafont": 1,
         "Ciel": 2,
@@ -96,56 +101,59 @@ def load_and_process_data(data):
         "Skarch": 6,
     }
 
-    # Reemplazar los nombres de marcas en las filas con sus valores numéricos
-    for marca, valor in marcas_map.items():
-        data.replace({marca: valor}, inplace=True)
+    # Definir el diccionario atributo_columna_map aquí, para evitar el NameError
+    atributo_columna_map = {
+        "Siempre tiene comerciales": 30,
+        "Tiene la mejor publicidad": 31,
+        "Tiene la botella más atractiva": 32,
+        "Es para todos los días": 4,
+        "Es una marca que amo": 5,
+        "Da la seguridad de que está 100% purificada": 33,
+        "Está más a la vista cuando la voy a comprar": 34,
+        "Es ligera": 8,
+        "Me ayuda a tomar más agua": 35,
+        "Me ayuda a mejorar mi salud": 36,
+        "Tiene buen sabor": 11,
+        "Tiene un empaque práctico": 37,
+        "Es amigable con el medio ambiente": 13,
+        "Tiene todo lo que debe de tener el agua": 38,
+        "Me ayuda a que todo mi cuerpo se active": 39,
+        "Me ayuda a eliminar todo lo malo": 40,
+        "Me ayuda a que todo mi cuerpo funcione correctamente": 42,
+        "Es para cualquier actividad": 43,
+        "Está presente en eventos atractivos para mi": 44,
+        "Tiene promociones atractivas": 45,
+        "Es innovadora": 23,
+        "Ofrece algo diferente a las otras marcas": 24,
+        "Es refrescante": 25,
+        "Me mantiene bien hidratado": 26,
+        "Me hace consciente de lo maravilloso que es mi cuerpo": 28,
+        "Me ayuda a cuidar mi cuerpo": 46,
+        "Me ayuda a estar en armonía": 47,
+        "Es la que me da más valor por mi dinero": 48,
+        "Se comporta responsablemente con el medio ambiente": 49,
+    }
 
     # Crear una lista para almacenar las filas transformadas
     transformed_rows = []
 
-    atributos = [
-        "b8c Siempre tiene comerciales",
-        "b8c Tiene la mejor publicidad",
-        "b8c Tiene la botella más atractiva",
-        "b8c Es para todos los días",
-        "b8c Es una marca que amo",
-        "b8c Da la seguridad de que está 100% purificada",
-        "b8c Está más a la vista cuando la voy a comprar",
-        "b8c Es ligera",
-        "b8c Me ayuda a tomar más agua",
-        "b8c Me ayuda a mejorar mi salud",
-        "b8c Tiene buen sabor",
-        "b8c Tiene un empaque práctico",
-        "b8c Es amigable con el medio ambiente",
-        "b8c Tiene todo lo que debe de tener el agua",
-        "b8c Me ayuda a que todo mi cuerpo se active",
-        "b8c Me ayuda a eliminar todo lo malo",
-        "b8c Me ayuda a que todo mi cuerpo funcione correctamente",
-        "b8c Es para cualquier actividad",
-        "b8c Está presente en eventos atractivos para mi",
-        "b8c Tiene promociones atractivas",
-        "b8c Es innovadora",
-        "b8c Ofrece algo diferente a las otras marcas",
-        "b8c Es refrescante",
-        "b8c Me mantiene bien hidratado",
-        "b8c Me hace consciente de lo maravilloso que es mi cuerpo",
-        "b8c Me ayuda a cuidar mi cuerpo",
-        "b8c Me ayuda a estar en armonía",
-        "b8c Es la que me da más valor por mi dinero",
-        "b8c Se comporta responsablemente con el medio ambiente",
-    ]
-
     # Progreso para procesar datos
     for index, row in tqdm(data.iterrows(), total=len(data), desc="Procesando datos"):
-        for i, atributo in enumerate(atributos):
+        for atributo in atributo_columna_map.keys():
             new_row = {marca: "" for marca in marcas_map.keys()}
             new_row["Atributos"] = atributo
 
-            for marca in marcas_map.keys():
-                column_name = f"img_{30 + i}_{marcas_map[marca]}"
-                if column_name in data.columns and pd.notna(row[column_name]):
-                    new_row[marca] = int(marcas_map[marca])
+            numero_columna = atributo_columna_map[atributo]
 
+            for marca in marcas_map.keys():
+                column_name = f"img_{numero_columna}_{marcas_map[marca]}"
+                if column_name in data.columns and pd.notna(row[column_name]):
+                    # Convertir cualquier valor a 1 si existe un dato, mantener vacío si no hay
+                    new_row[marca] = 1
+                else:
+                    new_row[marca] = ""  # Mantener vacío si no hay datos
+
+            # Copiar los otros campos al nuevo registro
             new_row["folio"] = row["folio"]
             new_row["nse_nue"] = row["nse_nue"]
             new_row["ciudad"] = row["ciudad"]
@@ -163,7 +171,6 @@ def load_and_process_data(data):
             new_row["esporadico"] = row["esporadico"]
             new_row["no_interesados"] = row["no_interesados"]
             new_row["abandonador"] = row["abandonador"]
-
             new_row["b1a.r05"] = row["b1a.r05"]
             new_row["b1a.r06"] = row["b1a.r06"]
             new_row["b1a.r12"] = row["b1a.r12"]
@@ -182,11 +189,7 @@ def load_and_process_data(data):
             new_row["b2a.r19"] = row["b2a.r19"]
             new_row["b2a.r21"] = row["b2a.r21"]
             new_row["b2a.r28"] = row["b2a.r28"]
-
-            # Asignar ponderación (ajústalo según cómo se calcule en tus datos)
-            new_row["ponderacion"] = row.get(
-                "ponderacion", 1.63
-            )  # Ajuste por defecto a 1.63
+            new_row["ponderacion"] = row["ponderacion"]
 
             # Agregar la fila nueva a la lista
             transformed_rows.append(new_row)
